@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Administração</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    input, button { margin: 5px; padding: 8px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    .actions button { margin: 0 4px; }
+  </style>
+</head>
+<body>
+  <h1>Cadastro de Produtos</h1>
+
+  <div>
+    <input type="hidden" id="produtoId">
+    <input type="text" id="descricao" placeholder="Descrição do Produto">
+    <input type="number" id="valor" placeholder="Valor (R$)" step="0.01">
+    <input type="number" id="quantidade" placeholder="Quantidade">
+    <input type="number" id="estoque" placeholder="Estoque (unidades)">
+    <button id="btnSalvar">Salvar</button>
+    <button id="btnLimpar">Limpar</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Descrição</th>
+        <th>Valor (R$)</th>
+        <th>Quantidade</th>
+        <th>Estoque</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="listaProdutos"></tbody>
+  </table>
+
+  <script>
+    // --- Substitua pelos dados do seu projeto no Firebase Console ---
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAkWWKZy_Fsz7R8tdkfSvdkkHOQPbuluf8",
+  authDomain: "cadastro-loja-7ca10.firebaseapp.com",
+  databaseURL: "https://cadastro-loja-7ca10-default-rtdb.firebaseio.com",
+  projectId: "cadastro-loja-7ca10",
+  storageBucket: "cadastro-loja-7ca10.firebasestorage.app",
+  messagingSenderId: "163391237141",
+  appId: "1:163391237141:web:a1c3f4273d282196dc721c",
+  measurementId: "G-2T145M35SC"
+};
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const produtosRef = db.ref("produtos");
+
+    // DOM
+    const inputId = document.getElementById('produtoId');
+    const inputDescricao = document.getElementById('descricao');
+    const inputValor = document.getElementById('valor');
+    const inputQuantidade = document.getElementById('quantidade');
+    const inputEstoque = document.getElementById('estoque');
+    const btnSalvar = document.getElementById('btnSalvar');
+    const btnLimpar = document.getElementById('btnLimpar');
+    const tbody = document.getElementById('listaProdutos');
+
+    function validarCampos() {
+      if (!inputDescricao.value.trim()) { alert('Descrição é obrigatória'); inputDescricao.focus(); return false; }
+      if (inputValor.value === "" || isNaN(parseFloat(inputValor.value))) { alert('Valor inválido'); inputValor.focus(); return false; }
+      if (inputQuantidade.value === "" || isNaN(parseInt(inputQuantidade.value))) { alert('Quantidade inválida'); inputQuantidade.focus(); return false; }
+      // estoque pode ser 0, mas deve ser número
+      if (inputEstoque.value === "" || isNaN(parseInt(inputEstoque.value))) { alert('Estoque inválido'); inputEstoque.focus(); return false; }
+      return true;
+    }
+
+    async function salvarProduto() {
+      if (!validarCampos()) return;
+      const id = inputId.value || null;
+      const produto = {
+        descricao: inputDescricao.value.trim(),
+        valor: parseFloat(Number(inputValor.value).toFixed(2)),
+        quantidade: parseInt(inputQuantidade.value, 10),
+        estoque: parseInt(inputEstoque.value, 10),
+        updatedAt: Date.now()
+      };
+
+      try {
+        if (id) {
+          await produtosRef.child(id).update(produto);
+        } else {
+          const newRef = produtosRef.push();
+          produto.createdAt = Date.now();
+          await newRef.set(produto);
+        }
+        limparCampos();
+      } catch (err) {
+        console.error('Erro ao salvar:', err);
+        alert('Erro ao salvar: ' + (err.message || err));
+      }
+    }
+
+    function limparCampos() {
+      inputId.value = "";
+      inputDescricao.value = "";
+      inputValor.value = "";
+      inputQuantidade.value = "";
+      inputEstoque.value = "";
+      btnSalvar.textContent = 'Salvar';
+    }
+
+    function montarLinha(id, produto) {
+      const tr = document.createElement('tr');
+
+      const tdDesc = document.createElement('td'); tdDesc.textContent = produto.descricao || '';
+      const tdValor = document.createElement('td'); tdValor.textContent = (typeof produto.valor === 'number') ? produto.valor.toFixed(2) : (produto.valor ? Number(produto.valor).toFixed(2) : '0.00');
+      const tdQtd = document.createElement('td'); tdQtd.textContent = produto.quantidade != null ? produto.quantidade : '';
+      const tdEst = document.createElement('td'); tdEst.textContent = produto.estoque != null ? produto.estoque : 0;
+      const tdAcoes = document.createElement('td');
+
+      const btnEditar = document.createElement('button'); btnEditar.textContent = 'Editar';
+      btnEditar.addEventListener('click', () => iniciarEdicao(id, produto));
+
+      const btnExcluir = document.createElement('button'); btnExcluir.textContent = 'Excluir';
+      btnExcluir.addEventListener('click', () => {
+        if (confirm('Confirma exclusão deste produto?')) {
+          produtosRef.child(id).remove().catch(err => { console.error(err); alert('Erro ao excluir: ' + err.message); });
+        }
+      });
+
+      tdAcoes.className = 'actions';
+      tdAcoes.appendChild(btnEditar);
+      tdAcoes.appendChild(btnExcluir);
+
+      tr.appendChild(tdDesc);
+      tr.appendChild(tdValor);
+      tr.appendChild(tdQtd);
+      tr.appendChild(tdEst);
+      tr.appendChild(tdAcoes);
+
+      return tr;
+    }
+
+    function iniciarEdicao(id, produto) {
+      inputId.value = id;
+      inputDescricao.value = produto.descricao || '';
+      inputValor.value = produto.valor != null ? produto.valor : '';
+      inputQuantidade.value = produto.quantidade != null ? produto.quantidade : '';
+      inputEstoque.value = produto.estoque != null ? produto.estoque : 0;
+      btnSalvar.textContent = 'Atualizar';
+      inputDescricao.focus();
+    }
+
+    // Listagem em tempo real
+    produtosRef.on('value', snapshot => {
+      tbody.innerHTML = '';
+      if (!snapshot.exists()) {
+        tbody.innerHTML = '<tr><td colspan="5">Nenhum produto cadastrado</td></tr>';
+        return;
+      }
+      snapshot.forEach(child => {
+        const prod = child.val();
+        const id = child.key;
+        const tr = montarLinha(id, prod);
+        tbody.appendChild(tr);
+      });
+    }, err => {
+      console.error('Erro ao ler produtos:', err);
+      alert('Erro ao ler produtos: ' + (err.message || err));
+    });
+
+    // Eventos
+    btnSalvar.addEventListener('click', salvarProduto);
+    btnLimpar.addEventListener('click', limparCampos);
+  </script><br>
+  <div class="voltar">
+    <a href="Loja.html">← Voltar à Página Inicial</a>
+  </div>
+</body>
+</html>

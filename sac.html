@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAC - Minha Loja</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    header {
+      background-color: #1a73e8;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    main {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    label {
+      font-weight: bold;
+      color: #444;
+    }
+
+    input[type="text"],
+    select,
+    textarea {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      width: 100%;
+      font-size: 1rem;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    input[type="submit"] {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #1558b0;
+    }
+
+    .voltar {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .voltar a {
+      color: #1a73e8;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .voltar a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      text-align: center;
+      padding: 15px;
+      background: #222;
+      color: #ccc;
+      margin-top: 40px;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SAC - Atendimento ao Cliente</h1>
+  </header>
+
+  <main>
+    <p style="text-align:center;">Central de atendimento: <strong>0800-000-000</strong></p>
+
+    <form id="formSAC" onsubmit="enviarMensagem(event)">
+      <label for="nome">Nome:</label>
+      <input type="text" id="nome" name="nome" placeholder="Digite seu nome" required>
+
+      <label for="tipo">Tipo de Solicitação:</label>
+      <select id="tipo" name="tipo" required>
+        <option value="">Selecione...</option>
+        <option value="Elogio">Elogio</option>
+        <option value="Reclamação">Reclamação</option>
+        <option value="Sugestão">Sugestão</option>
+        <option value="Suporte">Suporte</option>
+      </select>
+
+      <label for="descricao">Descrição:</label>
+      <textarea id="descricao" name="descricao" rows="5" placeholder="Descreva sua solicitação..." required></textarea>
+
+      <input type="submit" value="Enviar Mensagem">
+    </form>
+
+    <div id="status" class="status"></div>
+
+    <div class="voltar">
+      <a href="Loja.html">← Voltar à Página Inicial</a>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 Minha Loja - Todos os direitos reservados
+  </footer>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script>
+    // 🔥 CONFIGURAÇÃO DO FIREBASE (substitua com as credenciais reais do seu projeto)
+    const firebaseConfig = {
+  apiKey: "AIzaSyAkWWKZy_Fsz7R8tdkfSvdkkHOQPbuluf8",
+  authDomain: "cadastro-loja-7ca10.firebaseapp.com",
+  databaseURL: "https://cadastro-loja-7ca10-default-rtdb.firebaseio.com",
+  projectId: "cadastro-loja-7ca10",
+  storageBucket: "cadastro-loja-7ca10.firebasestorage.app",
+  messagingSenderId: "163391237141",
+  appId: "1:163391237141:web:a1c3f4273d282196dc721c",
+  measurementId: "G-2T145M35SC"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 📨 Função para enviar mensagem ao Realtime Database
+    function enviarMensagem(event) {
+      event.preventDefault();
+      const nome = document.getElementById("nome").value.trim();
+      const tipo = document.getElementById("tipo").value;
+      const descricao = document.getElementById("descricao").value.trim();
+      const statusDiv = document.getElementById("status");
+
+      if (!nome || !tipo || !descricao) {
+        statusDiv.style.color = "red";
+        statusDiv.textContent = "Por favor, preencha todos os campos.";
+        return;
+      }
+
+      const novaMensagem = {
+        nome,
+        tipo,
+        descricao,
+        dataEnvio: new Date().toLocaleString("pt-BR")
+      };
+
+      // Salva no nó "sac"
+      db.ref("sac").push(novaMensagem)
+        .then(() => {
+          statusDiv.style.color = "green";
+          statusDiv.textContent = "Mensagem enviada com sucesso! ✅";
+          document.getElementById("formSAC").reset();
+        })
+        .catch((error) => {
+          console.error("Erro ao enviar:", error);
+          statusDiv.style.color = "red";
+          statusDiv.textContent = "Erro ao enviar a mensagem. Tente novamente.";
+        });
+    }
+  </script>
+
+</body>
+</html>
